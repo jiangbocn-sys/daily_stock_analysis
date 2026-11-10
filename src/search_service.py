@@ -4443,6 +4443,8 @@ class SearchService:
                         if is_index_etf else f"{effective_name} risk insider selling lawsuit litigation"
                     ),
                     'desc': '风险排查',
+                    'search_days': 30,
+                    'keep_unknown': True,
                     'tavily_topic': None if is_index_etf else 'news',
                     'strict_freshness': not is_index_etf,
                 },
@@ -4494,6 +4496,8 @@ class SearchService:
                         if is_index_etf else f"{stock_name} {stock_code} 风险 处罚 诉讼"
                     ),
                     'desc': '风险排查',
+                    'search_days': 30,
+                    'keep_unknown': True,
                     'tavily_topic': None if is_index_etf else 'news',
                     'strict_freshness': not is_index_etf,
                 },
@@ -4578,7 +4582,9 @@ class SearchService:
                 provider = available_providers[provider_index % len(available_providers)]
                 provider_index += 1
             
-            request_days = (
+            # 维度可用 'search_days' 单独放宽检索窗口（多捞候选池），
+            # 与下方时效过滤窗口解耦。
+            request_days = dim.get('search_days') or (
                 self.ANALYTICAL_INTEL_LOOKBACK_DAYS
                 if dim['name'] in self.ANALYTICAL_INTEL_DIMENSIONS
                 else search_days
@@ -4607,8 +4613,11 @@ class SearchService:
             if dim['strict_freshness']:
                 filtered_response = self._filter_news_response(
                     response,
-                    search_days=search_days,
+                    search_days=dim.get('filter_days') or search_days,
                     max_results=provider_max_results,
+                    # 'keep_unknown': 保留 published_date 不可解析的结果
+                    # （风险/公告类页面常无日期，但这些信息本身有参考价值）
+                    keep_unknown=bool(dim.get('keep_unknown')),
                     log_scope=f"{stock_code}:{provider.name}:{dim['name']}",
                 )
             elif dim['name'] in self.ANALYTICAL_INTEL_DIMENSIONS:
