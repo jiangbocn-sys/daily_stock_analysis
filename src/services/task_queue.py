@@ -36,6 +36,13 @@ from src.services.run_diagnostics import (
 from src.utils.analysis_metadata import SELECTION_SOURCES
 from src.services.stock_code_utils import resolve_index_stock_code_for_analysis
 
+from pathlib import Path
+
+from src.services.task_queue_store import TaskQueueStore
+
+# 任务队列持久化文件（位于应用 data 目录）
+_TASK_QUEUE_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "task_queue.db"
+
 logger = logging.getLogger(__name__)
 
 
@@ -163,6 +170,63 @@ class TaskInfo:
             payload["asset_type"] = self.asset_type
         return payload
     
+    def to_persist_dict(self) -> Dict[str, Any]:
+        """Serialize task state for on-disk persistence (includes the result)."""
+        from src.services.task_queue_store import TaskQueueStore
+        return {
+            "task_id": self.task_id,
+            "stock_code": self.stock_code,
+            "stock_name": self.stock_name,
+            "status": self.status.value,
+            "progress": self.progress,
+            "message": self.message,
+            "result_json": TaskQueueStore.encode_json(self.result),
+            "error": self.error,
+            "report_type": self.report_type,
+            "created_at": self.created_at.isoformat(),
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "original_query": self.original_query,
+            "selection_source": self.selection_source,
+            "skills_json": TaskQueueStore.encode_json(self.skills),
+        }
+
+    @classmethod
+    def from_persist_dict(cls, row: Dict[str, Any]) -> 'TaskInfo':
+        """Rebuild a TaskInfo from a persisted row."""
+        from src.services.task_queue_store import TaskQueueStore
+
+        def _dt(value: Optional[str]) -> Optional[datetime]:
+            if not value:
+                return None
+            try:
+                return datetime.fromisoformat(value)
+            except Exception:
+                return None
+
+        skills = TaskQueueStore.decode_json(row.get('skills_json'))
+        try:
+            status = TaskStatus(row.get('status') or TaskStatus.PENDING.value)
+        except Exception:
+            status = TaskStatus.PENDING
+        return cls(
+            task_id=row.get("task_id"),
+            stock_code=row.get("stock_code"),
+            stock_name=row.get("stock_name"),
+            status=status,
+            progress=int(row.get("progress") or 0),
+            message=row.get("message"),
+            result=TaskQueueStore.decode_json(row.get("result_json")),
+            error=row.get("error"),
+            report_type=row.get("report_type") or "detailed",
+            created_at=_dt(row.get("created_at")) or datetime.now(),
+            started_at=_dt(row.get("started_at")),
+            completed_at=_dt(row.get("completed_at")),
+            original_query=row.get("original_query"),
+            selection_source=row.get("selection_source"),
+            skills=skills if isinstance(skills, list) else None,
+        )
+
     def copy(self) -> 'TaskInfo':
         """Create a shallow copy of the task information."""
         return TaskInfo(
@@ -257,7 +321,50 @@ class AnalysisTaskQueue:
         self._max_flow_events_per_task = 200
         
         self._initialized = True
+        # ---- 任务持久化：内存为主，落盘为辅（重启后仍可查询历史任务）----
+        self._store = TaskQueueStore(_TASK_QUEUE_DB_PATH)
+        self._restore_persisted_tasks()
+
         logger.info(f"[TaskQueue] 初始化完成，最大并发: {max_workers}")
+
+    def _restore_persisted_tasks(self) -> None:
+        """Restore persisted tasks into memory after a service restart.
+
+        Tasks that were pending/processing when the process died cannot be
+        resumed, so they are marked failed with an explicit reason instead of
+        being silently dropped (which used to make the WebUI poll a 404).
+        """
+        try:
+            self._store.initialize()
+            rows = self._store.load_all(limit=self._max_history)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(f"[TaskQueue] 恢复持久化任务失败: {exc}")
+            return
+        if not rows:
+            return
+        restored = 0
+        interrupted = 0
+        for row in rows:
+            try:
+                task = TaskInfo.from_persist_dict(row)
+            except Exception:
+                continue
+            if task.status in (TaskStatus.PENDING, TaskStatus.PROCESSING):
+                task.status = TaskStatus.FAILED
+                task.completed_at = datetime.now()
+                task.message = "服务重启，任务已中断"
+                task.error = "服务重启，任务已中断"
+                interrupted += 1
+                try:
+                    self._store.upsert(task.to_persist_dict())
+                except Exception:
+                    pass
+            self._tasks[task.task_id] = task
+            restored += 1
+        logger.info(
+            f"[TaskQueue] 从持久化存储恢复 {restored} 个任务"
+            f"（其中 {interrupted} 个因服务重启被标记为中断）"
+        )
     
     @property
     def executor(self) -> ThreadPoolExecutor:
@@ -521,6 +628,7 @@ class AnalysisTaskQueue:
                 )
                 self._tasks[task_id] = task_info
                 self._analyzing_stocks[dedupe_key] = task_id
+                self._store.upsert(task_info.to_persist_dict())
 
                 try:
                     future = self.executor.submit(
@@ -586,6 +694,7 @@ class AnalysisTaskQueue:
             if task_id in self._tasks:
                 raise ValueError(f"任务 ID 已存在: {task_id}")
             self._tasks[task_id] = task_info
+            self._store.upsert(task_info.to_persist_dict())
             try:
                 future = self.executor.submit(self._execute_background_task, task_id, run_task)
             except Exception:
@@ -627,7 +736,11 @@ class AnalysisTaskQueue:
         """
         with self._data_lock:
             task = self._tasks.get(task_id)
-            return task.copy() if task else None
+            if task is not None:
+                return task.copy()
+            # 内存中已清理（超出保留窗口）时回落到持久化存储
+            restored = self._store.get(task_id)
+            return TaskInfo.from_persist_dict(restored) if restored else None
 
     def append_task_flow_event(
         self,
@@ -749,6 +862,7 @@ class AnalysisTaskQueue:
                 return task.copy()
 
             task_snapshot = task.copy()
+            self._store.upsert(task.to_persist_dict())
 
         self._broadcast_event(event_type, task_snapshot.to_dict())
         return task_snapshot
@@ -843,6 +957,7 @@ class AnalysisTaskQueue:
                         task.completed_at = datetime.now()
                         task.result = result
                         task.message = "分析完成"
+                        self._store.upsert(task.to_persist_dict())
                         task.stock_name = result.get("stock_name", task.stock_name)
                         
                         # 从分析中集合移除（使用 submit 时固化的 key，避免不一致残留）
@@ -877,6 +992,7 @@ class AnalysisTaskQueue:
                     task.completed_at = datetime.now()
                     task.error = error_msg[:200]  # 限制错误信息长度
                     task.message = f"分析失败: {error_msg[:50]}"
+                    self._store.upsert(task.to_persist_dict())
                     
                     # 从分析中集合移除（使用 submit 时固化的 key，避免不一致残留）
                     dedupe_key = task.dedupe_key or _dedupe_task_key(
@@ -998,6 +1114,7 @@ class AnalysisTaskQueue:
             
             for task in completed_tasks[:to_remove]:
                 del self._tasks[task.task_id]
+                self._store.delete(task.task_id)
                 if task.task_id in self._futures:
                     del self._futures[task.task_id]
                 removed += 1
