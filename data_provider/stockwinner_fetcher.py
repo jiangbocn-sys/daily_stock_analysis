@@ -58,7 +58,7 @@ class StockWinnerFetcher(BaseFetcher):
     """Daily K-line fallback backed by a locally running StockWinner service."""
 
     name = "StockWinnerFetcher"
-    priority = 5
+    priority = 1
     allow_empty_daily_data = True
 
     _HTTP_TIMEOUT_SECONDS = 10

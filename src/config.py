@@ -1000,7 +1000,7 @@ class Config:
     stockwinner_account_id: Optional[str] = None
     stockwinner_username: Optional[str] = None
     stockwinner_password: Optional[str] = None
-    stockwinner_priority: int = 5
+    stockwinner_priority: int = 1
     mx_apikey: Optional[str] = None
     mx_priority: int = 6
     finnhub_api_key: Optional[str] = None
@@ -1941,7 +1941,7 @@ class Config:
             stockwinner_account_id=os.getenv('STOCKWINNER_ACCOUNT_ID') or None,
             stockwinner_username=os.getenv('STOCKWINNER_USERNAME') or None,
             stockwinner_password=os.getenv('STOCKWINNER_PASSWORD') or None,
-            stockwinner_priority=parse_env_int(os.getenv('STOCKWINNER_PRIORITY'), 5, field_name='STOCKWINNER_PRIORITY', minimum=0),
+            stockwinner_priority=parse_env_int(os.getenv('STOCKWINNER_PRIORITY'), 1, field_name='STOCKWINNER_PRIORITY', minimum=0),
             alphavantage_api_key=os.getenv('ALPHAVANTAGE_API_KEY') or None,
             longbridge_app_key=os.getenv('LONGBRIDGE_APP_KEY') or None,
             longbridge_app_secret=os.getenv('LONGBRIDGE_APP_SECRET') or None,

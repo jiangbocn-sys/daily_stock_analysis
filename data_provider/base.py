@@ -1858,7 +1858,7 @@ class DataFetcherManager:
                     account_id=getattr(config, "stockwinner_account_id", "") or "",
                     username=getattr(config, "stockwinner_username", "") or "",
                     password=getattr(config, "stockwinner_password", "") or "",
-                    priority=getattr(config, "stockwinner_priority", 5),
+                    priority=getattr(config, "stockwinner_priority", 1),
                 )
             )
         else:
