@@ -4421,7 +4421,7 @@ class SearchService:
             search_dimensions = [
                 {
                     'name': 'latest_news',
-                    'provider': 'Tavily',
+                    'provider': 'MiniMax',
                     'query': f"{stock_name} {stock_code} latest news events",
                     'desc': '最新消息',
                     'tavily_topic': 'news',
@@ -4429,7 +4429,7 @@ class SearchService:
                 },
                 {
                     'name': 'market_analysis',
-                    'provider': 'Tavily',
+                    'provider': 'MiniMax',
                     'query': f"{effective_name} analyst rating target price report",
                     'desc': '机构分析',
                     'tavily_topic': None,
@@ -4448,7 +4448,7 @@ class SearchService:
                 },
                 {
                     'name': 'earnings',
-                    'provider': 'Tavily',
+                    'provider': 'MiniMax',
                     'query': (
                         f"{effective_name} {stock_code} index performance composition outlook"
                         if is_index_etf else f"{effective_name} earnings revenue profit growth forecast"
@@ -4472,7 +4472,7 @@ class SearchService:
             search_dimensions = [
                 {
                     'name': 'latest_news',
-                    'provider': 'Tavily',
+                    'provider': 'MiniMax',
                     'query': f"{stock_name} {stock_code} 最新动态",
                     'desc': '最新消息',
                     'tavily_topic': 'news',
@@ -4480,7 +4480,7 @@ class SearchService:
                 },
                 {
                     'name': 'market_analysis',
-                    'provider': 'Tavily',
+                    'provider': 'MiniMax',
                     'query': f"{stock_name} 研报 目标价 评级 深度分析",
                     'desc': '机构分析',
                     'tavily_topic': None,
@@ -4491,7 +4491,7 @@ class SearchService:
                     'provider': 'Tavily',
                     'query': (
                         f"{stock_name} 指数走势 跟踪误差 净值 表现"
-                        if is_index_etf else f"{stock_name} 减持 处罚 违规 诉讼 利空 风险"
+                        if is_index_etf else f"{stock_name} {stock_code} 风险 处罚 诉讼"
                     ),
                     'desc': '风险排查',
                     'tavily_topic': None if is_index_etf else 'news',
@@ -4510,7 +4510,7 @@ class SearchService:
                 },
                 {
                     'name': 'earnings',
-                    'provider': 'Tavily',
+                    'provider': 'MiniMax',
                     'query': (
                         f"{stock_name} 指数成分 净值 跟踪表现"
                         if is_index_etf else f"{stock_name} 业绩预告 财报 营收 净利润 同比增长"
