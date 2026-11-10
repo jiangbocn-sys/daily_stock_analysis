@@ -2462,30 +2462,30 @@ class SearchService:
         )
 
         # 初始化搜索引擎（按优先级排序）
-        # 1. Bocha 优先（中文搜索优化，AI摘要）
+        # 1. MiniMax（Coding Plan Web Search，结构化结果）
+        if minimax_keys:
+            self._providers.append(MiniMaxSearchProvider(minimax_keys))
+            logger.info(f"已配置 MiniMax 搜索，共 {len(minimax_keys)} 个 API Key")
+        # 2. Bocha 优先（中文搜索优化，AI摘要）
         if bocha_keys:
             self._providers.append(BochaSearchProvider(bocha_keys))
             logger.info(f"已配置 Bocha 搜索，共 {len(bocha_keys)} 个 API Key")
 
-        # 2. Tavily（免费额度更多，每月 1000 次）
+        # 3. Tavily（免费额度更多，每月 1000 次）
         if tavily_keys:
             self._providers.append(TavilySearchProvider(tavily_keys))
             logger.info(f"已配置 Tavily 搜索，共 {len(tavily_keys)} 个 API Key")
 
-        # 3. Brave Search（隐私优先，全球覆盖）
+        # 4. Brave Search（隐私优先，全球覆盖）
         if brave_keys:
             self._providers.append(BraveSearchProvider(brave_keys))
             logger.info(f"已配置 Brave 搜索，共 {len(brave_keys)} 个 API Key")
 
-        # 4. SerpAPI 作为备选（每月 100 次）
+        # 5. SerpAPI 作为备选（每月 100 次）
         if serpapi_keys:
             self._providers.append(SerpAPISearchProvider(serpapi_keys))
             logger.info(f"已配置 SerpAPI 搜索，共 {len(serpapi_keys)} 个 API Key")
 
-        # 5. MiniMax（Coding Plan Web Search，结构化结果）
-        if minimax_keys:
-            self._providers.append(MiniMaxSearchProvider(minimax_keys))
-            logger.info(f"已配置 MiniMax 搜索，共 {len(minimax_keys)} 个 API Key")
 
         # 6. SearXNG（自建实例优先；未配置时可自动发现公共实例）
         searxng_provider = SearXNGSearchProvider(
@@ -4445,6 +4445,7 @@ class SearchService:
                 },
                 {
                     'name': 'earnings',
+                    'provider': 'Tavily',
                     'query': (
                         f"{effective_name} {stock_code} index performance composition outlook"
                         if is_index_etf else f"{effective_name} earnings revenue profit growth forecast"
@@ -4475,6 +4476,7 @@ class SearchService:
                 },
                 {
                     'name': 'market_analysis',
+                    'provider': 'Tavily',
                     'query': f"{stock_name} 研报 目标价 评级 深度分析",
                     'desc': '机构分析',
                     'tavily_topic': None,
@@ -4502,6 +4504,7 @@ class SearchService:
                 },
                 {
                     'name': 'earnings',
+                    'provider': 'Tavily',
                     'query': (
                         f"{stock_name} 指数成分 净值 跟踪表现"
                         if is_index_etf else f"{stock_name} 业绩预告 财报 营收 净利润 同比增长"
@@ -4552,8 +4555,22 @@ class SearchService:
             if not available_providers:
                 break
             
-            provider = available_providers[provider_index % len(available_providers)]
-            provider_index += 1
+            # 维度可显式指定搜索引擎（如 'provider': 'Tavily'），优先于轮询；
+            # 未指定时按 provider 列表顺序轮流使用（列表首项为默认优先项）
+            provider = None
+            preferred = dim.get('provider')
+            if preferred:
+                for candidate in available_providers:
+                    if preferred.lower() == candidate.name.lower():
+                        provider = candidate
+                        break
+                if provider is None:
+                    logger.warning(
+                        f"[情报搜索] {dim['desc']}: 指定的搜索引擎 {preferred} 不可用，回退轮询"
+                    )
+            if provider is None:
+                provider = available_providers[provider_index % len(available_providers)]
+                provider_index += 1
             
             request_days = (
                 self.ANALYTICAL_INTEL_LOOKBACK_DAYS
