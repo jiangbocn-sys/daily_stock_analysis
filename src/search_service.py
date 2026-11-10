@@ -4421,18 +4421,15 @@ class SearchService:
             search_dimensions = [
                 {
                     'name': 'latest_news',
-<<<<<<< HEAD
-                    'query': f"{effective_name} {stock_code} latest news events",
-=======
                     'provider': 'Tavily',
                     'query': f"{stock_name} {stock_code} latest news events",
->>>>>>> eda2b95f (feat(search): 最新消息/公司公告改用 Tavily，并放宽新闻时效窗口到 7 天)
                     'desc': '最新消息',
                     'tavily_topic': 'news',
                     'strict_freshness': True,
                 },
                 {
                     'name': 'market_analysis',
+                    'provider': 'Tavily',
                     'query': f"{effective_name} analyst rating target price report",
                     'desc': '机构分析',
                     'tavily_topic': None,
