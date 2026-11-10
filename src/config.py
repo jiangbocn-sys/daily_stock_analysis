@@ -995,6 +995,12 @@ class Config:
     futu_opend_host: Optional[str] = None
     futu_opend_port: int = 11111
     futu_hk_realtime_source_priority: str = "futu,longbridge,akshare,yfinance"
+    # StockWinner 本地行情服务（日线兜底数据源）
+    stockwinner_base_url: Optional[str] = None
+    stockwinner_account_id: Optional[str] = None
+    stockwinner_username: Optional[str] = None
+    stockwinner_password: Optional[str] = None
+    stockwinner_priority: int = 5
     mx_apikey: Optional[str] = None
     mx_priority: int = 6
     finnhub_api_key: Optional[str] = None
@@ -1931,6 +1937,11 @@ class Config:
             mx_apikey=os.getenv('MX_APIKEY') or None,
             mx_priority=parse_env_int(os.getenv('MX_PRIORITY'), 6, field_name='MX_PRIORITY', minimum=0),
             finnhub_api_key=os.getenv('FINNHUB_API_KEY') or None,
+            stockwinner_base_url=os.getenv('STOCKWINNER_BASE_URL') or None,
+            stockwinner_account_id=os.getenv('STOCKWINNER_ACCOUNT_ID') or None,
+            stockwinner_username=os.getenv('STOCKWINNER_USERNAME') or None,
+            stockwinner_password=os.getenv('STOCKWINNER_PASSWORD') or None,
+            stockwinner_priority=parse_env_int(os.getenv('STOCKWINNER_PRIORITY'), 5, field_name='STOCKWINNER_PRIORITY', minimum=0),
             alphavantage_api_key=os.getenv('ALPHAVANTAGE_API_KEY') or None,
             longbridge_app_key=os.getenv('LONGBRIDGE_APP_KEY') or None,
             longbridge_app_secret=os.getenv('LONGBRIDGE_APP_SECRET') or None,

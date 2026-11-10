@@ -1848,6 +1848,22 @@ class DataFetcherManager:
         else:
             logger.debug("[data source init] skip TickFlowFetcher because TICKFLOW_API_KEY is not configured")
 
+        stockwinner_base_url = (getattr(config, "stockwinner_base_url", None) or "").strip()
+        if stockwinner_base_url:
+            from .stockwinner_fetcher import StockWinnerFetcher
+
+            optional_fetchers.append(
+                StockWinnerFetcher(
+                    base_url=stockwinner_base_url,
+                    account_id=getattr(config, "stockwinner_account_id", "") or "",
+                    username=getattr(config, "stockwinner_username", "") or "",
+                    password=getattr(config, "stockwinner_password", "") or "",
+                    priority=getattr(config, "stockwinner_priority", 5),
+                )
+            )
+        else:
+            logger.debug("[数据源初始化] 跳过未配置的 StockWinnerFetcher")
+
         mx_apikey = getattr(config, "mx_apikey", None)
         if not isinstance(mx_apikey, str):
             mx_apikey = ""
