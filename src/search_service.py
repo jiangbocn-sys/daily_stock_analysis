@@ -4421,7 +4421,12 @@ class SearchService:
             search_dimensions = [
                 {
                     'name': 'latest_news',
+<<<<<<< HEAD
                     'query': f"{effective_name} {stock_code} latest news events",
+=======
+                    'provider': 'Tavily',
+                    'query': f"{stock_name} {stock_code} latest news events",
+>>>>>>> eda2b95f (feat(search): 最新消息/公司公告改用 Tavily，并放宽新闻时效窗口到 7 天)
                     'desc': '最新消息',
                     'tavily_topic': 'news',
                     'strict_freshness': True,
@@ -4469,6 +4474,7 @@ class SearchService:
             search_dimensions = [
                 {
                     'name': 'latest_news',
+                    'provider': 'Tavily',
                     'query': f"{stock_name} {stock_code} 最新 新闻 重大 事件",
                     'desc': '最新消息',
                     'tavily_topic': 'news',
@@ -4494,6 +4500,7 @@ class SearchService:
                 },
                 {
                     'name': 'announcements',
+                    'provider': 'Tavily',
                     'query': (
                         f"{stock_name} {stock_code} 公告 指数调整 成分变化"
                         if is_index_etf else f"{stock_name} {stock_code} 公司公告 重要公告 上交所 深交所 cninfo"
