@@ -4473,7 +4473,7 @@ class SearchService:
                 {
                     'name': 'latest_news',
                     'provider': 'Tavily',
-                    'query': f"{stock_name} {stock_code} 最新 新闻 重大 事件",
+                    'query': f"{stock_name} {stock_code} 最新动态",
                     'desc': '最新消息',
                     'tavily_topic': 'news',
                     'strict_freshness': True,
@@ -4502,7 +4502,7 @@ class SearchService:
                     'provider': 'Tavily',
                     'query': (
                         f"{stock_name} {stock_code} 公告 指数调整 成分变化"
-                        if is_index_etf else f"{stock_name} {stock_code} 公司公告 重要公告 上交所 深交所 cninfo"
+                        if is_index_etf else f"{stock_name} {stock_code} 公告"
                     ),
                     'desc': '公司公告',
                     'tavily_topic': 'news',
