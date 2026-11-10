@@ -4440,6 +4440,7 @@ class SearchService:
                 },
                 {
                     'name': 'risk_check',
+                    'provider': 'Tavily',
                     'query': (
                         f"{effective_name} {stock_code} index performance outlook tracking error"
                         if is_index_etf else f"{effective_name} risk insider selling lawsuit litigation"
@@ -4490,6 +4491,7 @@ class SearchService:
                 },
                 {
                     'name': 'risk_check',
+                    'provider': 'Tavily',
                     'query': (
                         f"{stock_name} 指数走势 跟踪误差 净值 表现"
                         if is_index_etf else f"{stock_name} 减持 处罚 违规 诉讼 利空 风险"
