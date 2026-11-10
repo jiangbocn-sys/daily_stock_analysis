@@ -5481,6 +5481,9 @@ Output the complete Decision Dashboard in JSON format."""
                 getattr(self._get_runtime_config(), "report_language", "zh")
             )
             try:
+                # 推理模型（MiniMax 等）会在 JSON 前输出 <think> 块，
+                # 剥离后再解析，否则会被判为 ambiguous_json 并触发 fallback 重试
+                response_text = self._strip_reasoning_blocks(response_text)
                 _json_str, data = self._extract_analysis_json_object(response_text)
                 self._validate_analysis_minimal_contract(data)
             except Exception as exc:
@@ -5569,6 +5572,24 @@ Output the complete Decision Dashboard in JSON format."""
             logger.warning(f"JSON 解析失败: {e}，标记为解析失败")
             return self._parse_text_response(response_text, code, name)
     
+    @staticmethod
+    def _strip_reasoning_blocks(text: str) -> str:
+        """Strip reasoning/thinking blocks that some models prepend to the answer.
+
+        MiniMax-style reasoning models may emit <think>...</think> blocks inside
+        the answer content (or leave the block unterminated when the response is
+        truncated by max_tokens). Leaving them in place breaks JSON extraction.
+        """
+        if not text:
+            return text
+        import re
+
+        cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+        if "<think>" in cleaned:
+            # 未闭合：响应被截断在思考块里，丢弃整段思考内容
+            cleaned = cleaned.split("<think>")[0]
+        return cleaned.strip()
+
     def _fix_json_string(self, json_str: str) -> str:
         """修复常见的 JSON 格式问题"""
         import re
@@ -5602,6 +5623,7 @@ Output the complete Decision Dashboard in JSON format."""
                 the parsed object cannot satisfy the minimal parser contract.
         """
         try:
+            text = self._strip_reasoning_blocks(text)
             _json_str, data = self._extract_analysis_json_object(text)
         except ValueError as exc:
             reason = str(exc) or "invalid_json"

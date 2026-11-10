@@ -1,0 +1,25 @@
+# daily_stock_analysis 日志轮转配置
+#
+# 安装：
+#   sudo cp config/logrotate-daily-stock-analysis /etc/logrotate.d/daily-stock-analysis
+#   sudo chown root:root /etc/logrotate.d/daily-stock-analysis
+#   sudo chmod 644 /etc/logrotate.d/daily-stock-analysis
+#
+# 背景：
+#   - 应用按日期分文件：logs/stock_analysis_YYYYMMDD.log 与 logs/stock_analysis_debug_YYYYMMDD.log
+#   - 应用内的 RotatingFileHandler 只在同一天内轮转，跨天的历史文件无人清理，
+#     实测历史堆积到 146M（单日 debug 最大 42M）
+#
+# 说明：这些文件由应用进程持有 fd，必须用 copytruncate（不能 rename），
+#      否则进程会继续往已删除的 inode 写，日志会“看起来被清了但其实还在涨”。
+/home/bobo/daily_stock_analysis/logs/stock_analysis*.log {
+    daily
+    rotate 7
+    maxsize 20M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+    su bobo bobo
+}

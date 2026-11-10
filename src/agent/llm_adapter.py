@@ -100,6 +100,10 @@ _AUTO_THINKING_MODELS: List[str] = ["deepseek-reasoner", "deepseek-r1", "qwq"]
 
 # Models that need explicit opt-in via extra_body; payload decoupled from model name.
 _OPT_IN_THINKING_MODELS: Dict[str, dict] = {
+    # MiniMax 系列：降低/关闭思考预算，避免 <think> 块吃光 max_tokens 导致 JSON 截断
+    "minimax-m3.1-flash": {"reasoning_effort": "low"},
+    "minimax-m3": {"thinking": {"type": "disabled"}},
+
     "deepseek-chat": {"thinking": {"type": "enabled"}},
 }
 

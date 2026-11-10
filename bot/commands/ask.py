@@ -29,7 +29,7 @@ class AskCommand(BotCommand):
     Ask command handler - invoke Agent with a specific skill to analyze stocks.
     """
 
-    _MULTI_ANALYZE_TIMEOUT_S = 150.0
+    _MULTI_ANALYZE_TIMEOUT_S = 600.0
 
     @property
     def name(self) -> str:

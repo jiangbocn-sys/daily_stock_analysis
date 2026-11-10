@@ -149,8 +149,8 @@ def setup_logging(
     # Handler 3: 调试日志文件（DEBUG 级别，包含所有详细信息）
     debug_handler = RotatingFileHandler(
         debug_log_file,
-        maxBytes=50 * 1024 * 1024,  # 50MB
-        backupCount=3,
+        maxBytes=20 * 1024 * 1024,  # 20MB
+        backupCount=2,
         encoding='utf-8'
     )
     debug_handler.setLevel(logging.DEBUG)

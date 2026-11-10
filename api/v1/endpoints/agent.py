@@ -625,7 +625,7 @@ async def agent_chat_stream(
             fut = loop.run_in_executor(None, run_sync, executor, turn)
             while True:
                 try:
-                    event = await asyncio.wait_for(queue.get(), timeout=300.0)
+                    event = await asyncio.wait_for(queue.get(), timeout=900.0)
                 except asyncio.TimeoutError:
                     event = {"type": "error", "message": "分析超时"}
                     yield "data: " + json.dumps(event, ensure_ascii=False) + "\n\n"
